@@ -1,46 +1,57 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+require("dotenv").config();
+const { GoogleGenAI, Type } = require("@google/genai");
 
-const client = new GoogleGenerativeAI(
-  process.env.GOOGLE_GENAI_API_KEY
-);
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+});
 
 const generateEventProposal = async (userPrompt) => {
-  const prompt = `
-You are an AI Event Concierge.
-Your job is to read a user's corporate offsite request and return a venue proposal.
+  try {
+    console.log("API KEY EXISTS:", !!process.env.GEMINI_API_KEY);
+    console.log("MODEL USED:", "gemini-2.5-flash");
 
-Important rules:
-1. Always return valid JSON only.
-2. Do not return markdown.
-3. Keep the answer realistic and professional.
-4. If the user gives incomplete details, make sensible assumptions.
-5. The JSON must exactly follow this shape:
-{
-  "venueName": "string",
-  "location": "string",
-  "estimatedCost": "string",
-  "whyItFits": "string"
-}
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: `You are an AI Event Concierge.
+Read the user's event request and return a realistic venue proposal.
 
 User request:
-${userPrompt}
-`;
+${userPrompt}`,
+            },
+          ],
+        },
+      ],
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            venueName: { type: Type.STRING },
+            location: { type: Type.STRING },
+            estimatedCost: { type: Type.STRING },
+            whyItFits: { type: Type.STRING },
+          },
+          required: ["venueName", "location", "estimatedCost", "whyItFits"],
+        },
+      },
+    });
 
-  const model = client.getGenerativeModel({
-    model: "gemini-1.5-flash", 
-  });
+    const text =
+      typeof response.text === "function" ? response.text() : response.text;
 
-  const response = await model.generateContent(prompt);
+    if (!text) {
+      throw new Error("Empty response from Gemini");
+    }
 
- const text = response.response
-    .text()
-    .replace(/```json|```/g, "")
-    .trim();
-
-  try {
     return JSON.parse(text);
-  } catch (error) {
-    throw new Error("AI returned invalid JSON");
+  } catch (err) {
+    console.error("Gemini generateEventProposal error:", err.message);
+    throw err;
   }
 };
 

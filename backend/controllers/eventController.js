@@ -17,7 +17,13 @@ const createEventProposal = async (req, res) => {
       });
     }
 
-     const aiResponse = await generateEventProposal(prompt.trim());
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        message: "Not authorized",
+      });
+    }
+
+    const aiResponse = await generateEventProposal(prompt.trim());
 
     const { venueName, location, estimatedCost, whyItFits } = aiResponse;
 
@@ -36,12 +42,13 @@ const createEventProposal = async (req, res) => {
       whyItFits,
     });
 
-     res.status(201).json({
+    return res.status(201).json({
       message: "Proposal generated successfully",
       proposal: savedEvent,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("createEventProposal error:", error);
+    return res.status(500).json({
       message: error.message || "Failed to generate proposal",
     });
   }
@@ -49,14 +56,23 @@ const createEventProposal = async (req, res) => {
 
 const getMyEventHistory = async (req, res) => {
   try {
-    const history = await EventRequest.find({ user: req.user.id }).sort({ createdAt: -1 });
+    if (!req.user || !req.user.id) {
+      return res.status(401).json({
+        message: "Not authorized",
+      });
+    }
 
-    res.status(200).json({
+    const history = await EventRequest.find({ user: req.user.id }).sort({
+      createdAt: -1,
+    });
+
+    return res.status(200).json({
       message: "History fetched successfully",
       history,
     });
   } catch (error) {
-    res.status(500).json({
+    console.error("getMyEventHistory error:", error);
+    return res.status(500).json({
       message: error.message || "Failed to fetch history",
     });
   }
