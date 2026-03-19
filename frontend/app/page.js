@@ -7,7 +7,13 @@ export default function HomePage() {
   const router = useRouter();
 
   useEffect(() => {
-    router.replace("/register");
+    const token = localStorage.getItem("token");
+
+    if (token) {
+      router.replace("/dashboard");
+    } else {
+      router.replace("/login");
+    }
   }, [router]);
 
   return null;

@@ -15,7 +15,6 @@ export default function RegisterPage() {
   });
 
   const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -27,7 +26,6 @@ export default function RegisterPage() {
     }));
 
     if (error) setError("");
-    if (success) setSuccess("");
   };
 
   const handleSubmit = async (e) => {
@@ -42,26 +40,17 @@ export default function RegisterPage() {
       return;
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(formData.email)) {
-      setError("Please enter a valid email address");
-      return;
-    }
-
-    if (formData.password.length < 6) {
-      setError("Password must be at least 6 characters");
-      return;
-    }
-
     try {
       setLoading(true);
       setError("");
-      setSuccess("");
 
-      await api.post("/auth/register", formData);
+      const res = await api.post("/auth/register", formData);
 
-      setSuccess("Registration successful. Please login.");
-      router.replace("/login");
+      // auto login after register
+      localStorage.setItem("token", res.data.token);
+      localStorage.setItem("user", JSON.stringify(res.data.user));
+
+      router.replace("/dashboard");
     } catch (err) {
       setError(err?.response?.data?.message || "Registration failed");
     } finally {
@@ -76,7 +65,7 @@ export default function RegisterPage() {
           Create Account
         </h1>
         <p className="mb-6 text-sm text-slate-500">
-          Register to use AI Event Concierge
+          Register to continue
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -123,7 +112,6 @@ export default function RegisterPage() {
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}
-          {success && <p className="text-sm text-green-600">{success}</p>}
 
           <button
             type="submit"
